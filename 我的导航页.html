@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的智能导航页 - 高级管理版</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4a6fa5;
+            --secondary-color: #6b8cbc;
+            --text-color: #333;
+            --bg-color: #f5f7fa;
+            --card-bg: #ffffff;
+            --shadow: rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+        .dark-mode {
+            --primary-color: #6b8cbc;
+            --secondary-color: #4a6fa5;
+            --text-color: #f0f0f0;
+            --bg-color: #1a1a2e;
+            --card-bg: #16213e;
+            --shadow: rgba(0, 0, 0, 0.3);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; transition: var(--transition); }
+        body { font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; background-color: var(--bg-color); color: var(--text-color); padding: 20px; min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        /* 管理状态样式 */
+        .admin-active [contenteditable="true"] {
+            outline: 2px dashed var(--secondary-color);
+            padding: 2px 5px;
+            border-radius: 4px;
+            cursor: text;
+        }
+        .admin-active [contenteditable="true"]:hover { background: rgba(107, 140, 188, 0.1); }
+
+        /* Header */
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid var(--shadow); padding-bottom: 10px; }
+        .admin-btn { background: none; border: 1px solid var(--primary-color); color: var(--primary-color); padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.8rem; margin-right: 10px; }
+        
+        /* Search */
+        .search-box { background: var(--card-bg); padding: 30px; border-radius: 12px; box-shadow: 0 5px 15px var(--shadow); margin-bottom: 30px; text-align: center; }
+        .search-form { display: flex; max-width: 700px; margin: 0 auto; }
+        .search-input { flex: 1; padding: 12px; border: 2px solid var(--primary-color); border-right: none; border-radius: 8px 0 0 8px; outline: none; }
+        .search-engine-select { padding: 0 10px; border: 2px solid var(--primary-color); border-right: none; background: var(--card-bg); color: var(--text-color); }
+        .search-btn { padding: 12px 25px; background: var(--primary-color); color: white; border: none; border-radius: 0 8px 8px 0; cursor: pointer; font-weight: bold; }
+
+        /* Grid */
+        .categories { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 25px; }
+        .category { background: var(--card-bg); border-radius: 12px; padding: 20px; box-shadow: 0 8px 20px var(--shadow); position: relative; }
+        .cat-title-wrap { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 3px solid var(--primary-color); }
+        .category h2 { font-size: 1.3rem; border: none !important; margin: 0; flex: 1; }
+        
+        /* Links */
+        .links { display: grid; gap: 10px; }
+        .link-item { display: flex; align-items: center; padding: 10px 15px; border-radius: 8px; background: #f8fafc; text-decoration: none; color: var(--text-color); position: relative; }
+        .dark-mode .link-item { background: rgba(255,255,255,0.05); }
+        .link-item:hover { transform: translateX(5px); background: var(--primary-color); color: white !important; }
+        .link-icon { margin-right: 12px; width: 20px; text-align: center; color: inherit; }
+
+        /* Admin UI */
+        .edit-controls { display: none; }
+        .admin-active .edit-controls { display: inline-flex; }
+        .delete-btn { color: #ff4d4f; margin-left: auto; cursor: pointer; padding: 5px; z-index: 10; font-size: 0.8rem; }
+        .add-btn { font-size: 1.1rem; cursor: pointer; color: var(--primary-color); margin-left: 10px; }
+
+        /* Modal */
+        #loginModal, #addModal { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; 
+        }
+        .modal-content { background: var(--card-bg); padding: 30px; border-radius: 12px; width: 320px; text-align: center; }
+        .modal-content input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; background: var(--bg-color); color: var(--text-color); }
+        .modal-content button { width: 100%; padding: 10px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+
+        footer { text-align: center; margin-top: 50px; color: #888; padding-bottom: 30px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1 id="mainTitle" contenteditable="false" onblur="saveTextData()">我的导航页</h1>
+            <div>
+                <button class="admin-btn" id="loginBtn">管理入口</button>
+                <button class="admin-btn edit-controls" id="logoutBtn" style="border-color:#ff4d4f; color:#ff4d4f">退出管理</button>
+                <button class="theme-toggle" id="themeToggle" style="background:none; border:none; cursor:pointer; color:var(--primary-color); font-size:1.2rem;">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </header>
+
+        <div class="search-box">
+            <form class="search-form" id="searchForm">
+                <input type="text" class="search-input" id="searchInput" placeholder="输入搜索关键词...">
+                <select class="search-engine-select" id="searchEngine">
+                    <option value="https://www.baidu.com/s?wd=">百度</option>
+                    <option value="https://www.google.com/search?q=">Google</option>
+                    <option value="https://www.bing.com/search?q=">Bing</option>
+                </select>
+                <button type="submit" class="search-btn">搜索</button>
+            </form>
+        </div>
+
+        <div class="categories" id="navGrid">
+            </div>
+
+        <footer>
+            <p id="footerText" contenteditable="false" onblur="saveTextData()">© 2026 我的导航页 - 设计简洁，体验高效</p>
+        </footer>
+    </div>
+
+    <div id="loginModal">
+        <div class="modal-content">
+            <h3>管理登录</h3>
+            <input type="text" id="adminUser" placeholder="账号">
+            <input type="password" id="adminPass" placeholder="密码">
+            <button onclick="checkLogin()">登录</button>
+            <button onclick="closeModal('loginModal')" style="background:#888; margin-top:5px;">取消</button>
+        </div>
+    </div>
+
+    <div id="addModal">
+        <div class="modal-content">
+            <h3>添加新链接</h3>
+            <input type="text" id="newTitle" placeholder="网站名称">
+            <input type="text" id="newUrl" placeholder="URL (需带http://)">
+            <input type="text" id="newIcon" placeholder="图标 (如: fab fa-google)">
+            <button onclick="saveLink()">保存</button>
+            <button onclick="closeModal('addModal')" style="background:#888; margin-top:5px;">取消</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 数据模型 ---
+        const defaultData = {
+            mainTitle: "我的导航页",
+            footerText: "© 2026 我的导航页 - 设计简洁，体验高效",
+            categories: [
+                { title: "常用网站", color: "#4a6fa5", links: [
+                    { name: "Google", url: "https://www.google.com", icon: "fab fa-google" },
+                    { name: "GitHub", url: "https://github.com", icon: "fab fa-github" },
+                    { name: "Youtube", url: "https://youtube.com", icon: "fab fa-youtube" },
+                    { name: "哔哩哔哩", url: "https://bilibili.com", icon: "fas fa-play-circle" }
+                ]},
+                { title: "AI工具", color: "#4a6fa5", links: [
+                    { name: "Gemini", url: "https://gemini.google.com", icon: "fas fa-robot" },
+                    { name: "ChatGPT", url: "https://chatgpt.com", icon: "fas fa-comment-dots" },
+                    { name: "AI Studio", url: "https://aistudio.google.com", icon: "fas fa-microchip" },
+                    { name: "NotebookLM", url: "https://notebooklm.google.com", icon: "fas fa-book-open" }
+                ]},
+                { title: "娱乐媒体", color: "#4a6fa5", links: [
+                    { name: "YouTube", url: "https://youtube.com", icon: "fab fa-youtube" },
+                    { name: "Netflix", url: "https://netflix.com", icon: "fas fa-tv" },
+                    { name: "哔哩哔哩", url: "https://bilibili.com", icon: "fas fa-play-circle" },
+                    { name: "Spotify", url: "https://spotify.com", icon: "fab fa-spotify" }
+                ]},
+                { title: "工作工具", color: "#4a6fa5", links: [
+                    { name: "Gmail", url: "https://gmail.com", icon: "fas fa-envelope" },
+                    { name: "Google Drive", url: "https://drive.google.com", icon: "fas fa-cloud" },
+                    { name: "Notion", url: "https://notion.so", icon: "fas fa-sticky-note" },
+                    { name: "Trello", url: "https://trello.com", icon: "fab fa-trello" }
+                ]}
+            ]
+        };
+
+        let appData = JSON.parse(localStorage.getItem('appData')) || defaultData;
+        let isAdmin = false;
+
+        // --- 渲染逻辑 ---
+        function renderApp() {
+            // 渲染非列表文字
+            document.getElementById('mainTitle').innerText = appData.mainTitle;
+            document.getElementById('footerText').innerText = appData.footerText;
+            
+            const grid = document.getElementById('navGrid');
+            grid.innerHTML = '';
+            
+            appData.categories.forEach((cat, cIndex) => {
+                const catDiv = document.createElement('div');
+                catDiv.className = 'category';
+                catDiv.innerHTML = `
+                    <div class="cat-title-wrap" style="border-color:${cat.color}">
+                        <h2 contenteditable="${isAdmin}" onblur="updateCatTitle(${cIndex}, this)" style="color:${cat.color}">
+                            ${cat.title}
+                        </h2>
+                        <i class="fas fa-plus-circle add-btn edit-controls" onclick="openAddModal(${cIndex})"></i>
+                    </div>
+                    <div class="links">
+                        ${cat.links.map((link, lIndex) => `
+                            <a href="${link.url}" class="link-item" target="_blank">
+                                <div class="link-icon"><i class="${link.icon}"></i></div>
+                                <span>${link.name}</span>
+                                <i class="fas fa-trash-alt delete-btn edit-controls" onclick="deleteLink(event, ${cIndex}, ${lIndex})"></i>
+                            </a>
+                        `).join('')}
+                    </div>
+                `;
+                grid.appendChild(catDiv);
+            });
+        }
+
+        // --- 管理功能 ---
+        function checkLogin() {
+            const u = document.getElementById('adminUser').value;
+            const p = document.getElementById('adminPass').value;
+            if(u === 'along' && p === 'lilong2026') {
+                isAdmin = true;
+                document.body.classList.add('admin-active');
+                document.getElementById('mainTitle').contentEditable = true;
+                document.getElementById('footerText').contentEditable = true;
+                closeModal('loginModal');
+                document.getElementById('loginBtn').style.display = 'none';
+                renderApp();
+            } else { alert('账号或密码错误！'); }
+        }
+
+        document.getElementById('logoutBtn').onclick = () => {
+            isAdmin = false;
+            document.body.classList.remove('admin-active');
+            document.getElementById('mainTitle').contentEditable = false;
+            document.getElementById('footerText').contentEditable = false;
+            document.getElementById('loginBtn').style.display = 'inline-block';
+            renderApp();
+        };
+
+        // 保存标题和页脚
+        function saveTextData() {
+            appData.mainTitle = document.getElementById('mainTitle').innerText;
+            appData.footerText = document.getElementById('footerText').innerText;
+            saveToLocal();
+        }
+
+        // 修改分类名
+        function updateCatTitle(index, el) {
+            appData.categories[index].title = el.innerText;
+            saveToLocal();
+        }
+
+        function deleteLink(e, cIndex, lIndex) {
+            e.preventDefault();
+            if(confirm('删除该链接？')) {
+                appData.categories[cIndex].links.splice(lIndex, 1);
+                saveToLocal();
+                renderApp();
+            }
+        }
+
+        let currentCat = 0;
+        function openAddModal(idx) { currentCat = idx; document.getElementById('addModal').style.display = 'flex'; }
+
+        function saveLink() {
+            const name = document.getElementById('newTitle').value;
+            const url = document.getElementById('newUrl').value;
+            const icon = document.getElementById('newIcon').value || 'fas fa-link';
+            if(name && url) {
+                appData.categories[currentCat].links.push({ name, url, icon });
+                saveToLocal();
+                renderApp();
+                closeModal('addModal');
+            }
+        }
+
+        function saveToLocal() { localStorage.setItem('appData', JSON.stringify(appData)); }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        document.getElementById('loginBtn').onclick = () => document.getElementById('loginModal').style.display='flex';
+
+        // 基础功能
+        document.getElementById('themeToggle').onclick = () => {
+            document.body.classList.toggle('dark-mode');
+            const icon = document.getElementById('themeToggle').querySelector('i');
+            icon.classList.toggle('fa-moon'); icon.classList.toggle('fa-sun');
+        };
+
+        document.getElementById('searchForm').onsubmit = (e) => {
+            e.preventDefault();
+            const q = document.getElementById('searchInput').value;
+            const engine = document.getElementById('searchEngine').value;
+            if(q) window.open(engine + encodeURIComponent(q), '_blank');
+        };
+
+        renderApp();
+    </script>
+</body>
+</html>
